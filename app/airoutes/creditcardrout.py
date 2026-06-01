@@ -17,9 +17,14 @@ router = APIRouter()
 # LOAD MODEL FILES - OLD WAY
 # =========================
 
-model = joblib.load("app/ai_models/credit_card/credit_card_model.pkl")
-scaler = joblib.load("app/ai_models/credit_card/scaler.pkl")
-employment_encoder = joblib.load("app/ai_models/credit_card/employment_encoder.pkl")
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_DIR = BASE_DIR / "ai_models" / "credit_card"
+
+model = joblib.load(MODEL_DIR / "credit_card_model.pkl")
+scaler = joblib.load(MODEL_DIR / "scaler.pkl")
+employment_encoder = joblib.load(MODEL_DIR / "employment_encoder.pkl")
 
 
 # =========================

@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import pandas as pd
 import joblib
 from sqlalchemy.orm import Session
-
+from pathlib import Path
 from app.database import SessionLocal
 from app.model import ChurnPredictionLog
 
@@ -25,10 +25,23 @@ def get_db():
 # LOAD MODEL FILES - OLD WAY
 # =========================
 
-model = joblib.load(r"C:\Users\aamir\Desktop\myapp\app\ai_models\churn\model (1).pkl")
-scaler = joblib.load(r"C:\Users\aamir\Desktop\myapp\app\ai_models\churn\scaler (1).pkl")
-selector = joblib.load(r"C:\Users\aamir\Desktop\myapp\app\ai_models\churn\selector.pkl")
-columns = joblib.load(r"C:\Users\aamir\Desktop\myapp\app\ai_models\churn\columns (2).pkl")
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+model = joblib.load(
+    BASE_DIR / "ai_models" / "churn" / "model (1).pkl"
+)
+
+scaler = joblib.load(
+    BASE_DIR / "ai_models" / "churn" / "scaler (1).pkl"
+)
+
+selector = joblib.load(
+    BASE_DIR / "ai_models" / "churn" / "selector.pkl"
+)
+
+columns = joblib.load(
+    BASE_DIR / "ai_models" / "churn" / "columns (2).pkl"
+)
 
 
 # =========================
@@ -80,7 +93,7 @@ def get_risk_level(churn_percentage: float):
 def predict_churn(data: ChurnRequest, db: Session = Depends(get_db)):
 
     # Default values because UI does not send these fields
-    geography = "Egypt"
+    geography = "Spain"
     gender = "Male"
 
     age_group = get_age_group(data.age)
