@@ -24,7 +24,7 @@ def weekly_graph(db: Session = Depends(get_db)):
     rows = (
         db.query(
             cast(DealApplication.created_at, Date).label("day"),
-            func.count(DealApplication.id).label("count")
+            func.count().label("product_count")
         )
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
@@ -36,7 +36,7 @@ def weekly_graph(db: Session = Depends(get_db)):
 
     for row in rows:
         day_index = row.day.weekday()
-        values[day_index] = row.count
+        values[day_index] = row.product_count
 
     return {
         "week_label": f"Week of {start_of_week.strftime('%b %d')} - {end_of_week.strftime('%b %d, %Y')}",
@@ -51,7 +51,7 @@ def performance_daily_deals(db: Session = Depends(get_db)):
     rows = (
         db.query(
             cast(DealApplication.created_at, Date).label("day"),
-            func.count(DealApplication.id).label("count")
+            func.count().label("product_count")
         )
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
@@ -63,7 +63,7 @@ def performance_daily_deals(db: Session = Depends(get_db)):
 
     for row in rows:
         day_index = row.day.weekday()
-        values[day_index] = row.count
+        values[day_index] = row.product_count
 
     return {
         "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -95,28 +95,39 @@ def performance_weekly_summary(db: Session = Depends(get_db)):
     ]
 
     if total_deals > 0:
-        conversion_rate = round((len(converted_deals) / total_deals) * 100)
+        conversion_rate = round(
+            (len(converted_deals) / total_deals) * 100
+        )
     else:
         conversion_rate = 0
 
     top_product_row = (
         db.query(
             DealApplication.product_name,
-            func.count(DealApplication.id).label("product_count")
+            func.count().label("product_count")
         )
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
         .group_by(DealApplication.product_name)
-        .order_by(func.count(DealApplication.id).desc())
+        .order_by(func.count().desc())
         .first()
     )
 
-    top_product = top_product_row[0] if top_product_row else "No Deals Yet"
+    top_product = (
+        top_product_row[0]
+        if top_product_row
+        else "No Deals Yet"
+    )
 
     return {
-        "week_label": f"Week of {start_of_week.strftime('%b %d')} - {end_of_week.strftime('%b %d, %Y')}",
+        "week_label":
+            f"Week of {start_of_week.strftime('%b %d')} - "
+            f"{end_of_week.strftime('%b %d, %Y')}",
+
         "total_value_initiated": total_value_initiated,
+
         "conversion_rate": conversion_rate,
+
         "top_product": top_product
     }
 
@@ -134,13 +145,10 @@ def performance_recent_deals(db: Session = Depends(get_db)):
 
     for deal in deals:
         result.append({
-            "client_name": deal.customer_name,
-            "client_id": f"DEAL-{deal.id}",
+            "client_name": deal.client_id,
+            "client_id": deal.client_id,
             "product_name": deal.product_name,
-            "amount": deal.amount,
-            "model_type": deal.model_type,
-            "risk_level": deal.risk_level,
-            "status": deal.status,
+            "amount": float(deal.amount or 0),
             "time": deal.created_at.strftime("%Y-%m-%d %H:%M")
         })
 

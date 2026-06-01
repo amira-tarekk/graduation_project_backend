@@ -11,8 +11,9 @@ router = APIRouter()
 
 
 class DealRecordRequest(BaseModel):
+    client_id: str
     employee_id: str
-    customer_name: Optional[str] = "Unknown Customer"
+    
     product_name: Optional[str] = "Unknown Product"
     amount: Optional[float] = 0
     model_type: Optional[str] = None
@@ -25,8 +26,9 @@ def record_new_deal(
     db: Session = Depends(get_db)
 ):
     deal = DealApplication(
+        client_id=data.client_id,
         employee_id=data.employee_id,
-        customer_name=data.customer_name,
+        
         product_name=data.product_name,
         amount=data.amount,
         model_type=data.model_type,
@@ -40,5 +42,5 @@ def record_new_deal(
 
     return {
         "message": "Deal recorded",
-        "deal_id": deal.id
+        
     }

@@ -76,7 +76,7 @@ def get_risk_level(churn_percentage: float):
 # CHURN PREDICTION API
 # =========================
 
-@router.post("/predict-churn")
+@router.post("/churn-predict")
 def predict_churn(data: ChurnRequest, db: Session = Depends(get_db)):
 
     # Default values because UI does not send these fields

@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, Numeric
 from app.database import Base
 from sqlalchemy import DateTime
 from sqlalchemy.sql import func
-from datetime import datetime
+from datetime import UTC, datetime
 last_login = Column(DateTime)
 from sqlalchemy import DateTime
 from datetime import datetime
@@ -105,16 +105,16 @@ class AdminActivityLog(Base):
     target_name = Column(String)
     employee_id = Column(String, nullable=True)
     admin_name = Column(String, default="John Administrator")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     
 class DealApplication(Base):
     __tablename__ = "deal_applications"
 
-    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, primary_key=True, index=True)
 
     employee_id = Column(String, nullable=False)
 
-    customer_name = Column(String, nullable=False)
+    
     product_name = Column(String, nullable=False)
     amount = Column(Float, nullable=False)
 
