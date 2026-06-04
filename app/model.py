@@ -8,6 +8,7 @@ from sqlalchemy import DateTime
 from datetime import datetime
 
 
+
 class Employee(Base):
     __tablename__ = "employees"
 
@@ -35,20 +36,19 @@ class LoanPredictionLog(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     income = Column(Float)
-    credit_score = Column(Integer)
+    credit_score = Column(Float)
     loan_amount = Column(Float)
     dti_ratio = Column(Float)
     employment_status = Column(String)
 
     status = Column(String)
-    approval_probability = Column(Float)
+    approval_probability = Column(String)
+    rejection_probability = Column(String)
+    eligibility_score = Column(Integer)
 
-    product_name = Column(String)
-    interest_rate = Column(String)
-    monthly_payment = Column(String)
-    explanation = Column(String)
+    recommended_product = Column(String)
 
-    created_at = Column(DateTime, default=datetime.now)  
+    created_at = Column(DateTime, default=datetime.utcnow) 
     
 
 
@@ -58,18 +58,17 @@ class CreditCardPredictionLog(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     income = Column(Float)
-    credit_score = Column(Integer)
+    credit_score = Column(Float)
     employment_status = Column(String)
 
     status = Column(String)
-    approval_probability = Column(Float)
-    card_name = Column(String)
-    interest_rate = Column(String)
-    credit_limit = Column(String)
-    annual_apr = Column(String)
-    recommendation_reason = Column(String)
 
-    created_at = Column(DateTime, default=datetime.now) 
+    approval_probability = Column(String)
+    rejection_probability = Column(String)
+
+    recommended_product = Column(String)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
     
     
 class Admin(Base):

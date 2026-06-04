@@ -7,11 +7,8 @@ from pathlib import Path
 from app.database import SessionLocal
 from app.model import ChurnPredictionLog
 
-router = APIRouter()
 
-# =========================
-# DATABASE
-# =========================
+router = APIRouter()
 
 def get_db():
     db = SessionLocal()
@@ -20,10 +17,6 @@ def get_db():
     finally:
         db.close()
 
-
-# =========================
-# LOAD MODEL FILES - OLD WAY
-# =========================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -44,10 +37,6 @@ columns = joblib.load(
 )
 
 
-# =========================
-# REQUEST SCHEMA
-# =========================
-
 class ChurnRequest(BaseModel):
     credit_score: int
     age: int
@@ -58,10 +47,6 @@ class ChurnRequest(BaseModel):
     is_active_member: int
     estimated_salary: float
 
-
-# =========================
-# HELPER FUNCTIONS
-# =========================
 
 def get_age_group(age: int):
     if age < 30:
@@ -85,14 +70,10 @@ def get_risk_level(churn_percentage: float):
         return "Low Risk"
 
 
-# =========================
-# CHURN PREDICTION API
-# =========================
-
 @router.post("/churn-predict")
 def predict_churn(data: ChurnRequest, db: Session = Depends(get_db)):
 
-    # Default values because UI does not send these fields
+    
     geography = "Spain"
     gender = "Male"
 
@@ -112,27 +93,22 @@ def predict_churn(data: ChurnRequest, db: Session = Depends(get_db)):
         "AgeGroup": age_group
     }])
 
-    # Same encoding used during training
     input_df = pd.get_dummies(
         input_df,
         columns=["Geography", "Gender", "AgeGroup"],
         drop_first=True
     )
-
-    # Match training columns exactly
+    
     input_df = input_df.reindex(columns=columns, fill_value=0)
-
-    # Same selector and scaler used during training
+    
     selected_input = selector.transform(input_df)
     scaled_input = scaler.transform(selected_input)
 
-    # Real model prediction probability
     probability = model.predict_proba(scaled_input)[0][1]
 
     churn_percentage = round(float(probability) * 100, 2)
     risk_level = get_risk_level(churn_percentage)
 
-    # Save prediction in database
     log = ChurnPredictionLog(
         credit_score=data.credit_score,
         age=data.age,
@@ -148,8 +124,7 @@ def predict_churn(data: ChurnRequest, db: Session = Depends(get_db)):
 
     db.add(log)
     db.commit()
-
-    # Flutter expected response
+    
     return {
         "churn_percentage": churn_percentage,
         "risk_level": risk_level

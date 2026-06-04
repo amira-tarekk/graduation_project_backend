@@ -12,7 +12,8 @@ from app.airoutes.deals import router as deals_router
 from app.airoutes.admin_dashboard import router as admin_dashboard_router
 from app.dashboard import router as dashboard_router
 from app import activity_logs
-
+from app.airoutes.loanrout import router as loan_router
+from app.airoutes.creditcardrout import router as credit_card_router
 
 
 

@@ -1,152 +1,383 @@
-from fastapi import APIRouter
+from fastapi import FastAPI, HTTPException, APIRouter, Depends
 from pydantic import BaseModel
 import joblib
-import pandas as pd
-from pathlib import Path
+import numpy as np
+
+from sqlalchemy.orm import Session
+
+from app.database import SessionLocal
+from app.model import LoanPredictionLog
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 
 router = APIRouter()
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_DIR = BASE_DIR / "ai_models" / "loan"
 
-model = joblib.load(MODEL_DIR / "loan_model.pkl")
-scaler = joblib.load(MODEL_DIR / "scaler.pkl")
-emp_encoder = joblib.load(MODEL_DIR / "emp_encoder.pkl")
-approval_encoder = joblib.load(MODEL_DIR / "approval_encoder.pkl")
+
+
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+model = joblib.load(
+    BASE_DIR / "ai_models" / "loan" / "loan_model.pkl"
+)
+
+emp_encoder = joblib.load(
+    BASE_DIR / "ai_models" / "loan" / "emp_encoder.pkl"
+)
+
+approval_encoder = joblib.load(
+    BASE_DIR / "ai_models" / "loan" / "approval_encoder.pkl"
+)
 
 
 class LoanRequest(BaseModel):
-    monthly_income: float
-    credit_score: int
-    requested_loan_amount: float
+    income: float              
+    credit_score: float
+    loan_amount: float
     dti_ratio: float
     employment_status: str
 
 
-def calculate_monthly_payment(loan_amount: float, interest_rate: float):
-    return round((loan_amount * (1 + interest_rate)) / 12, 2)
+def calculate_monthly_payment(loan_amount, annual_interest_rate, months):
+    total_amount = loan_amount * (1 + annual_interest_rate)
+    return round(total_amount / months, 2)
 
 
-@router.post("/loan-recommendation")
-def loan_recommendation(data: LoanRequest):
-    try:
-        employment_encoded = emp_encoder.transform([data.employment_status])[0]
-    except Exception:
-        return {
-            "error": "Invalid employment_status",
-            "allowed_values": list(emp_encoder.classes_)
+def get_income_category(income):
+    if income >= 30000:
+        return "High Income"
+    elif income >= 15000:
+        return "Good Income"
+    elif income >= 8000:
+        return "Moderate Income"
+    elif income >= 5000:
+        return "Low Income"
+    else:
+        return "Very Low Income"
+
+
+def get_credit_category(credit_score):
+    if credit_score >= 800:
+        return "Excellent"
+    elif credit_score >= 720:
+        return "Very Good"
+    elif credit_score >= 650:
+        return "Good"
+    elif credit_score >= 580:
+        return "Fair"
+    else:
+        return "Poor"
+
+
+def calculate_eligibility_score(income, credit_score, loan_amount, dti_ratio, employment_status):
+    score = 0
+
+    # Credit Score: 35 points
+    if credit_score >= 800:
+        score += 35
+    elif credit_score >= 720:
+        score += 30
+    elif credit_score >= 650:
+        score += 22
+    elif credit_score >= 580:
+        score += 12
+    else:
+        score += 0
+
+    # Income: 25 points
+    if income >= 30000:
+        score += 25
+    elif income >= 15000:
+        score += 20
+    elif income >= 8000:
+        score += 12
+    elif income >= 5000:
+        score += 6
+    else:
+        score += 0
+
+    # DTI: 20 points
+    if dti_ratio <= 20:
+        score += 20
+    elif dti_ratio <= 30:
+        score += 15
+    elif dti_ratio <= 40:
+        score += 8
+    elif dti_ratio <= 50:
+        score += 3
+    else:
+        score += 0
+
+    # Loan Amount Burden: 15 points
+    # كل ما القرض أكبر بالنسبة للدخل، المخاطرة أعلى
+    loan_to_income_ratio = loan_amount / max(income, 1)
+
+    if loan_to_income_ratio <= 6:
+        score += 15
+    elif loan_to_income_ratio <= 12:
+        score += 10
+    elif loan_to_income_ratio <= 18:
+        score += 5
+    else:
+        score += 0
+
+    # Employment: 5 points
+    if employment_status == "employed":
+        score += 5
+
+    return min(score, 100)
+
+
+def get_rejection_reasons(income, credit_score, loan_amount, dti_ratio, employment_status):
+    reasons = []
+
+    loan_to_income_ratio = loan_amount / max(income, 1)
+
+    if income < 5000:
+        reasons.append("income is below the minimum acceptable threshold")
+
+    if credit_score < 580:
+        reasons.append("credit score is too low for unsecured lending")
+
+    if dti_ratio > 50:
+        reasons.append("DTI ratio is too high, indicating heavy existing debt burden")
+
+    if loan_to_income_ratio > 18:
+        reasons.append("requested loan amount is too high compared to monthly income")
+
+    if employment_status != "employed":
+        reasons.append("employment status is unstable")
+
+    if not reasons:
+        reasons.append("overall eligibility score is below the minimum approval threshold")
+
+    return reasons
+
+
+def build_product(product_name, label, loan_amount):
+    products = {
+        "Premium Salary Loan": {
+            "interest_rate": "18.5%",
+            "rate_value": 0.185,
+            "loan_term": "60 Months",
+            "months": 60,
+            "reason": "Recommended for applicants with strong income, high credit score, low DTI ratio, and low loan burden."
+        },
+        "Standard Loan": {
+            "interest_rate": "22%",
+            "rate_value": 0.22,
+            "loan_term": "48 Months",
+            "months": 48,
+            "reason": "Recommended for applicants with a good financial profile and moderate repayment risk."
+        },
+        "Secured Loan": {
+            "interest_rate": "16%",
+            "rate_value": 0.16,
+            "loan_term": "36 Months",
+            "months": 36,
+            "reason": "Recommended when the applicant has moderate risk and may need collateral to reduce lending risk."
+        }
+    }
+
+    p = products[product_name]
+
+    return {
+        "label": label,
+        "product_name": product_name,
+        "interest_rate": p["interest_rate"],
+        "monthly_payment": f"{calculate_monthly_payment(loan_amount, p['rate_value'], p['months'])} EGP",
+        "loan_term": p["loan_term"],
+        "reason": p["reason"]
+    }
+
+
+def recommend_loan_product(income, credit_score, loan_amount, dti_ratio, employment_status):
+    score = calculate_eligibility_score(
+        income=income,
+        credit_score=credit_score,
+        loan_amount=loan_amount,
+        dti_ratio=dti_ratio,
+        employment_status=employment_status
+    )
+
+    loan_to_income_ratio = round(loan_amount / max(income, 1), 2)
+
+    rejection_reasons = get_rejection_reasons(
+        income,
+        credit_score,
+        loan_amount,
+        dti_ratio,
+        employment_status
+    )
+
+    # Hard Reject Conditions
+    hard_reject = (
+        income < 5000
+        or credit_score < 580
+        or dti_ratio > 50
+        or loan_to_income_ratio > 18
+    )
+
+    if hard_reject or score < 45:
+        main_reason = "Application rejected because " + ", ".join(rejection_reasons) + "."
+
+        best_match = {
+            "label": "NOT ELIGIBLE",
+            "product_name": "N/A",
+            "interest_rate": "0%",
+            "monthly_payment": "0 EGP",
+            "loan_term": "N/A",
+            "reason": main_reason
         }
 
-    features = pd.DataFrame([{
-        "Income": data.monthly_income,
-        "Credit_Score": data.credit_score,
-        "Loan_Amount": data.requested_loan_amount,
-        "DTI_Ratio": data.dti_ratio,
-        "Employment_Status": employment_encoded
-    }])
+        return {
+            "status": "Rejected",
+            "eligibility_score": score,
+            "approval_probability": max(5, min(score, 49)),
+            "best_match": best_match,
+            "other_suitable_products": [],
+            "button_text": "Application Not Eligible",
+            "decision_factors": {
+                "income_category": get_income_category(income),
+                "credit_category": get_credit_category(credit_score),
+                "loan_to_income_ratio": loan_to_income_ratio,
+                "main_rejection_reasons": rejection_reasons
+            }
+        }
 
-    scaled_features = scaler.transform(features)
+    # Product Selection
+    if score >= 85 and credit_score >= 720 and income >= 15000 and loan_to_income_ratio <= 12:
+        best_match = build_product("Premium Salary Loan", "BEST MATCH", loan_amount)
+        other_products = [
+            build_product("Standard Loan", "OTHER SUITABLE PRODUCT", loan_amount),
+            build_product("Secured Loan", "OTHER SUITABLE PRODUCT", loan_amount)
+        ]
 
-    prediction = model.predict(scaled_features)[0]
-    probabilities = model.predict_proba(scaled_features)[0]
+    elif score >= 65 and credit_score >= 650 and income >= 8000 and loan_to_income_ratio <= 15:
+        best_match = build_product("Standard Loan", "BEST MATCH", loan_amount)
+        other_products = [
+            build_product("Secured Loan", "OTHER SUITABLE PRODUCT", loan_amount)
+        ]
 
-    try:
-        decoded_prediction = approval_encoder.inverse_transform([prediction])[0]
-    except Exception:
-        decoded_prediction = str(prediction)
-
-    prediction_text = str(decoded_prediction).strip().lower()
-
-    if prediction_text in ["approved", "approve", "1", "yes", "accepted"]:
-        status = "Approved"
     else:
-        status = "Rejected"
+        best_match = build_product("Secured Loan", "BEST MATCH", loan_amount)
+        other_products = []
 
-    if status == "Approved":
-        if data.credit_score >= 700:
-            product_name = "Premium Salary Loan"
-            interest_rate_value = 0.055
-            interest_rate_text = "5.5%"
-            explanation = "Highly recommended due to excellent Credit Score and low DTI ratio."
-        else:
-            product_name = "Standard Loan"
-            interest_rate_value = 0.068
-            interest_rate_text = "6.8%"
-            explanation = "Recommended because the client is approved with an acceptable credit profile."
+    return {
+        "status": "Approved",
+        "eligibility_score": score,
+        "approval_probability": max(55, score),
+        "best_match": best_match,
+        "other_suitable_products": other_products,
+        "button_text": f"Initiate Loan Application for {best_match['product_name']}",
+        "decision_factors": {
+            "income_category": get_income_category(income),
+            "credit_category": get_credit_category(credit_score),
+            "loan_to_income_ratio": loan_to_income_ratio,
+            "main_rejection_reasons": []
+        }
+    }
 
-        monthly_payment_value = calculate_monthly_payment(
-            data.requested_loan_amount,
-            interest_rate_value
+
+
+
+
+@router.post("/predict/loan")
+async def predict_loan(
+    request: LoanRequest,
+    db: Session = Depends(get_db)
+):
+    try:
+        employment_status = request.employment_status.lower().strip()
+
+        if employment_status not in list(emp_encoder.classes_):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid employment_status. Use one of: {list(emp_encoder.classes_)}"
+            )
+
+        emp_status_encoded = emp_encoder.transform([employment_status])[0]
+
+        input_data = np.array([[
+            request.income,
+            request.credit_score,
+            request.loan_amount,
+            request.dti_ratio,
+            emp_status_encoded
+        ]])
+
+        # ML model still works internally
+        prediction_idx = model.predict(input_data)[0]
+        model_status = approval_encoder.inverse_transform([prediction_idx])[0]
+
+        probabilities = model.predict_proba(input_data)[0]
+        approved_index = list(approval_encoder.classes_).index("Approved")
+        model_approval_probability = round(probabilities[approved_index] * 100, 2)
+
+        recommendation = recommend_loan_product(
+            income=request.income,
+            credit_score=request.credit_score,
+            loan_amount=request.loan_amount,
+            dti_ratio=request.dti_ratio,
+            employment_status=employment_status
         )
 
-        monthly_payment_text = f"{monthly_payment_value} EGP"
+        approval_probability = recommendation["approval_probability"]
+        rejection_probability = round(100 - approval_probability, 2)
 
-        if product_name == "Premium Salary Loan":
-            alternatives = [
-                {
-                    "name": "Standard Loan",
-                    "interest_rate": "6.8%",
-                    "monthly_payment": f"{calculate_monthly_payment(data.requested_loan_amount, 0.068)} EGP"
-                },
-                {
-                    "name": "Secured Loan",
-                    "interest_rate": "4.9%",
-                    "monthly_payment": f"{calculate_monthly_payment(data.requested_loan_amount, 0.049)} EGP"
-                }
-            ]
-        else:
-            alternatives = [
-                {
-                    "name": "Premium Salary Loan",
-                    "interest_rate": "5.5%",
-                    "monthly_payment": f"{calculate_monthly_payment(data.requested_loan_amount, 0.055)} EGP"
-                },
-                {
-                    "name": "Secured Loan",
-                    "interest_rate": "4.9%",
-                    "monthly_payment": f"{calculate_monthly_payment(data.requested_loan_amount, 0.049)} EGP"
-                }
-            ]
+        try:
+            new_log = LoanPredictionLog(
+                income=request.income,
+                credit_score=request.credit_score,
+                loan_amount=request.loan_amount,
+                dti_ratio=request.dti_ratio,
+                employment_status=employment_status,
 
-    else:
-        product_name = "N/A"
-        interest_rate_text = "0%"
-        monthly_payment_text = "0 EGP"
-        explanation = "The client does not currently meet the loan recommendation criteria."
-        alternatives = []
+                status=recommendation["status"],
+                approval_probability=f"{approval_probability}%",
+                rejection_probability=f"{rejection_probability}%",
+                eligibility_score=recommendation["eligibility_score"],
 
-    debug_info = {
-        "numeric_prediction": int(prediction),
-        "model_classes": [int(c) for c in model.classes_],
-        "probabilities": [float(p) for p in probabilities],
-        "approval_encoder_classes": list(approval_encoder.classes_),
-        "decoded_prediction": str(decoded_prediction)
-    }
+                recommended_product=recommendation["best_match"]["product_name"]
+            )
 
-    return {
-        "status": status,
-        "prediction_details": {
-            "product_name": product_name,
-            "interest_rate": interest_rate_text,
-            "monthly_payment": monthly_payment_text,
-            "explanation": explanation
-        },
+            db.add(new_log)
+            db.commit()
+        except NameError:
+            pass
 
-        # Old response keys kept so Flutter does not break
-        "recommended_loan": product_name,
-        "interest_rate": interest_rate_text,
-        "monthly_installment": monthly_payment_text,
-        "reason": explanation,
-        "alternatives": alternatives,
-        "raw_prediction": str(decoded_prediction),
+        return {
+            "status": recommendation["status"],
+            "approval_probability": f"{approval_probability}%",
+            "rejection_probability": f"{rejection_probability}%",
+            "eligibility_score": recommendation["eligibility_score"],
+            "client_profile": {
+                "income": request.income,
+                "credit_score": request.credit_score,
+                "loan_amount": request.loan_amount,
+                "dti_ratio": request.dti_ratio,
+                "employment_status": employment_status
+            },
+            "decision_factors": recommendation["decision_factors"],
+            "ui_result": {
+                "section_title": "AI Optimal Product Recommendation",
+                "subtitle": "Based on the client's financial profile and creditworthiness",
+                "best_match": recommendation["best_match"],
+                "other_suitable_products": recommendation["other_suitable_products"],
+                "button_text": recommendation["button_text"]
+            }
+        }
 
-        # Temporary debug to check the real model output
-        "debug": debug_info
-    }
+    except HTTPException as e:
+        raise e
 
-
-@router.get("/loan-employment-values")
-def loan_employment_values():
-    return {
-        "allowed_values": list(emp_encoder.classes_)
-    }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
