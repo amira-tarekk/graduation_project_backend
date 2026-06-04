@@ -109,20 +109,23 @@ class AdminActivityLog(Base):
 class DealApplication(Base):
     __tablename__ = "deal_applications"
 
-    client_id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+
+    client_id = Column(String, nullable=False)
 
     employee_id = Column(String, nullable=False)
 
-    
     product_name = Column(String, nullable=False)
+
     amount = Column(Float, nullable=False)
 
     model_type = Column(String, nullable=True)
+
     risk_level = Column(String, nullable=True)
 
     status = Column(String, default="Initiated")
 
-    created_at = Column(DateTime, default=datetime.utcnow)  
+    created_at = Column(DateTime, default=datetime.utcnow) 
     
     
 class ChurnPredictionLog(Base):
