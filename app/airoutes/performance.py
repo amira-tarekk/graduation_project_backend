@@ -1,13 +1,31 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from app.database import get_db
+from app.model import DealApplication
+from datetime import datetime, timedelta
+from sqlalchemy import func
 from app.model import DealApplication
 
 
 router = APIRouter()
+
+
+
+@router.get("/performance/deals-this-week")
+def deals_this_week(db: Session = Depends(get_db)):
+
+    week_start = datetime.now() - timedelta(days=7)
+
+    deals_count = db.query(DealApplication).filter(
+        DealApplication.created_at >= week_start
+    ).count()
+
+    return {
+        "deals_this_week": deals_count
+    }
 
 
 def get_current_week_range():
@@ -82,24 +100,10 @@ def performance_weekly_summary(db: Session = Depends(get_db)):
         .all()
     )
 
-    total_deals = len(weekly_deals)
-
     total_value_initiated = sum(
         float(deal.amount or 0)
         for deal in weekly_deals
     )
-
-    converted_deals = [
-        deal for deal in weekly_deals
-        if str(deal.status).lower() == "converted"
-    ]
-
-    if total_deals > 0:
-        conversion_rate = round(
-            (len(converted_deals) / total_deals) * 100
-        )
-    else:
-        conversion_rate = 0
 
     top_product_row = (
         db.query(
@@ -126,11 +130,10 @@ def performance_weekly_summary(db: Session = Depends(get_db)):
 
         "total_value_initiated": total_value_initiated,
 
-        "conversion_rate": conversion_rate,
+        "conversion_rate": 0,
 
         "top_product": top_product
     }
-
 
 @router.get("/performance/recent-deals")
 def performance_recent_deals(db: Session = Depends(get_db)):

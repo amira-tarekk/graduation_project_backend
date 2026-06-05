@@ -9,7 +9,8 @@ from app.model import Admin, AdminActivityLog, Employee
 from app.schema import EmployeeCreate
 from app.schema import EmployeeUpdate
 from app.schema import ResetPasswordRequest
-
+import secrets
+import string
 
 router = APIRouter()
 
@@ -234,6 +235,20 @@ def login_stats(db: Session = Depends(get_db)):
         for r in result
     ]
     
+@router.get("/employees/password/generate")
+def generate_password():
+
+    alphabet = string.ascii_letters + string.digits
+
+    password = ''.join(
+        secrets.choice(alphabet)
+        for _ in range(10)
+    )
+
+    return {
+        "password": password
+    }    
+    
 @router.get("/employees/{employee_id}")
 def get_employee_details(employee_id: str, db: Session = Depends(get_db)):
     emp = db.query(Employee).filter(Employee.employee_id == employee_id).first()
@@ -300,4 +315,8 @@ def get_employee_activity(employee_id: str, db: Session = Depends(get_db)):
             "created_at": log.created_at,
         }
         for log in logs
-    ]            
+    ]
+    
+    
+    
+              

@@ -6,6 +6,13 @@ from datetime import UTC, datetime
 last_login = Column(DateTime)
 from sqlalchemy import DateTime
 from datetime import datetime
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+EGYPT_TZ = ZoneInfo("Africa/Cairo")
+
+def egypt_now():
+    return datetime.now(EGYPT_TZ)
 
 
 
@@ -19,7 +26,7 @@ class Employee(Base):
     full_name = Column(String)
     email = Column(String)
     branch = Column(String)
-    last_login = Column(DateTime)
+    last_login = Column(DateTime, default=egypt_now)
     
 class Client(Base):
     __tablename__ = "clients"
@@ -48,7 +55,7 @@ class LoanPredictionLog(Base):
 
     recommended_product = Column(String)
 
-    created_at = Column(DateTime, default=datetime.utcnow) 
+    created_at = Column(DateTime, default=egypt_now) 
     
 
 
@@ -68,7 +75,7 @@ class CreditCardPredictionLog(Base):
 
     recommended_product = Column(String)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=egypt_now)
     
     
 class Admin(Base):
@@ -92,7 +99,7 @@ class EmployeeLogin(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     employee_id = Column(String(20))
-    login_time = Column(DateTime, default=datetime.now)  
+    login_time = Column(DateTime, default=egypt_now)  
     
 class AdminActivityLog(Base):
     __tablename__ = "admin_activity_logs"
@@ -104,7 +111,7 @@ class AdminActivityLog(Base):
     target_name = Column(String)
     employee_id = Column(String, nullable=True)
     admin_name = Column(String, default="John Administrator")
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    created_at = Column(DateTime, default=egypt_now)
     
 class DealApplication(Base):
     __tablename__ = "deal_applications"
@@ -125,7 +132,7 @@ class DealApplication(Base):
 
     status = Column(String, default="Initiated")
 
-    created_at = Column(DateTime, default=datetime.utcnow) 
+    created_at = Column(DateTime, default=egypt_now) 
     
     
 class ChurnPredictionLog(Base):
@@ -145,4 +152,4 @@ class ChurnPredictionLog(Base):
     churn_percentage = Column(Float)
     risk_level = Column(String)
 
-    created_at = Column(DateTime, default=datetime.now)    
+    created_at = Column(DateTime, default=egypt_now)    
