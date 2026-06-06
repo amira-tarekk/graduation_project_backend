@@ -81,3 +81,20 @@ def branch_distribution(db: Session = Depends(get_db)):
     return {
         "branches": result
     }
+    
+@router.get("/dashboard/users-summary")
+def users_summary(db: Session = Depends(get_db)):
+
+    total_users = db.query(Employee).count()
+
+    active_users = db.query(Employee).filter(
+        Employee.status == "Active"
+    ).count()
+
+   
+
+    return {
+        "total_users": total_users,
+        "active_users": active_users
+        
+    }    
