@@ -46,7 +46,10 @@ def login(data: Login, db: Session = Depends(get_db)):
     db.add(login_record)
     db.commit()
 
-    return {"message": "Login successful"}
+    return {
+    "message": "Login successful",
+    "employee_id": employee.employee_id
+}
 
 
 @router.post("/admin-login")
