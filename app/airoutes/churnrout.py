@@ -38,6 +38,7 @@ columns = joblib.load(
 
 
 class ChurnRequest(BaseModel):
+    employee_id: str
     credit_score: int
     age: int
     tenure: int
@@ -110,6 +111,7 @@ def predict_churn(data: ChurnRequest, db: Session = Depends(get_db)):
     risk_level = get_risk_level(churn_percentage)
 
     log = ChurnPredictionLog(
+        employee_id=data.employee_id,
         credit_score=data.credit_score,
         age=data.age,
         tenure=data.tenure,

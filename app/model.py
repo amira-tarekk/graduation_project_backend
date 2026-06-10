@@ -41,7 +41,7 @@ class LoanPredictionLog(Base):
     __tablename__ = "loan_prediction_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-
+    employee_id = Column(String)
     income = Column(Float)
     credit_score = Column(Float)
     loan_amount = Column(Float)
@@ -61,9 +61,10 @@ class LoanPredictionLog(Base):
 
 class CreditCardPredictionLog(Base):
     __tablename__ = "credit_card_prediction_logs"
-
+     
     id = Column(Integer, primary_key=True, index=True)
 
+    employee_id = Column(String)
     income = Column(Float)
     credit_score = Column(Float)
     employment_status = Column(String)
@@ -140,6 +141,7 @@ class ChurnPredictionLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    employee_id = Column(String)
     credit_score = Column(Integer)
     age = Column(Integer)
     tenure = Column(Integer)

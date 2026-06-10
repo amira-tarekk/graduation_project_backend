@@ -39,6 +39,7 @@ approval_encoder = joblib.load(
 
 
 class LoanRequest(BaseModel):
+    employee_id: str
     income: float              
     credit_score: float
     loan_amount: float
@@ -335,6 +336,7 @@ async def predict_loan(
 
         try:
             new_log = LoanPredictionLog(
+                employee_id=request.employee_id,
                 income=request.income,
                 credit_score=request.credit_score,
                 loan_amount=request.loan_amount,

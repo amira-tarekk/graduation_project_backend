@@ -33,6 +33,7 @@ card_target_encoder = joblib.load(
 
 
 class CreditCardRequest(BaseModel):
+    employee_id: str
     income: float
     credit_score: float
     employment_status: str
@@ -245,6 +246,7 @@ async def predict_credit_card(
         rejection_probability = round(100 - approval_probability, 2)
         
         log = CreditCardPredictionLog(
+    employee_id=request.employee_id,
     income=request.income,
     credit_score=request.credit_score,
     employment_status=employment_status,

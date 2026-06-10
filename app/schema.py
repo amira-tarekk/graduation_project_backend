@@ -5,6 +5,7 @@ class Login(BaseModel):
     password_hash: str
     
 class LoanRequest(BaseModel):
+    employee_id: str
     client_id: str
     monthly_income: float
     credit_score: int
@@ -15,6 +16,7 @@ class LoanRequest(BaseModel):
     
     
 class ChurnRequest(BaseModel):
+    employee_id: str
     client_id: str
     credit_score: int
     age: int
