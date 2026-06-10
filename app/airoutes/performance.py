@@ -14,12 +14,15 @@ router = APIRouter()
 
 
 
-@router.get("/performance/deals-this-week")
-def deals_this_week(db: Session = Depends(get_db)):
+@router.get("/performance/deals-this-week/{employee_id}")
+def deals_this_week(
+    employee_id: str,
+    db: Session = Depends(get_db)):
 
     week_start = datetime.now() - timedelta(days=7)
 
     deals_count = db.query(DealApplication).filter(
+        DealApplication.employee_id == employee_id,
         DealApplication.created_at >= week_start
     ).count()
 
@@ -35,8 +38,10 @@ def get_current_week_range():
     return start_of_week, end_of_week
 
 
-@router.get("/weekly-graph")
-def weekly_graph(db: Session = Depends(get_db)):
+@router.get("/weekly-graph/{employee_id}")
+def weekly_graph(
+    employee_id: str,
+    db: Session = Depends(get_db)):
     start_of_week, end_of_week = get_current_week_range()
 
     rows = (
@@ -44,6 +49,9 @@ def weekly_graph(db: Session = Depends(get_db)):
             cast(DealApplication.created_at, Date).label("day"),
             func.count().label("product_count")
         )
+        .filter(
+    DealApplication.employee_id == employee_id
+)
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
         .group_by(cast(DealApplication.created_at, Date))
@@ -62,8 +70,11 @@ def weekly_graph(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/performance/daily-deals")
-def performance_daily_deals(db: Session = Depends(get_db)):
+@router.get("/performance/daily-deals/{employee_id}")
+def performance_daily_deals(
+    employee_id: str,
+    db: Session = Depends(get_db)
+):
     start_of_week, end_of_week = get_current_week_range()
 
     rows = (
@@ -71,6 +82,9 @@ def performance_daily_deals(db: Session = Depends(get_db)):
             cast(DealApplication.created_at, Date).label("day"),
             func.count().label("product_count")
         )
+        .filter(
+    DealApplication.employee_id == employee_id
+)
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
         .group_by(cast(DealApplication.created_at, Date))
@@ -89,12 +103,18 @@ def performance_daily_deals(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/performance/weekly-summary")
-def performance_weekly_summary(db: Session = Depends(get_db)):
+@router.get("/performance/weekly-summary/{employee_id}")
+def performance_weekly_summary(
+    employee_id: str,
+    db: Session = Depends(get_db)
+):
     start_of_week, end_of_week = get_current_week_range()
 
     weekly_deals = (
         db.query(DealApplication)
+        .filter(
+        DealApplication.employee_id == employee_id
+    )
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
         .all()
@@ -110,6 +130,7 @@ def performance_weekly_summary(db: Session = Depends(get_db)):
             DealApplication.product_name,
             func.count().label("product_count")
         )
+        .filter(DealApplication.employee_id == employee_id)
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
         .group_by(DealApplication.product_name)
@@ -135,10 +156,14 @@ def performance_weekly_summary(db: Session = Depends(get_db)):
         "top_product": top_product
     }
 
-@router.get("/performance/recent-deals")
-def performance_recent_deals(db: Session = Depends(get_db)):
+@router.get("/performance/recent-deals/{employee_id}")
+def performance_recent_deals(
+    employee_id: str,
+    db: Session = Depends(get_db)
+):
     deals = (
         db.query(DealApplication)
+        .filter(DealApplication.employee_id == employee_id)
         .order_by(DealApplication.created_at.desc())
         .limit(5)
         .all()
