@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
-
+from fastapi import HTTPException
 from app.activity_logger import record_admin_activity
 from app.database import SessionLocal
 from app.model import Admin, AdminActivityLog, Employee
@@ -182,7 +182,10 @@ def reset_password(employee_id: str, data: ResetPasswordRequest, db: Session = D
     admin = db.query(Admin).first()
 
     if not admin or admin.password != data.admin_password:
-        return {"error": "Invalid admin password"}
+     raise HTTPException(
+        status_code=401,
+        detail="Invalid admin password"
+    )
 
     emp = db.query(Employee).filter(Employee.employee_id == employee_id).first()
 
