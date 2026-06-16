@@ -36,6 +36,8 @@ class Client(Base):
     name = Column(String)
     branch = Column(String)
     status = Column(String) 
+    phone = Column(String)
+    email = Column(String)
        
 class LoanPredictionLog(Base):
     __tablename__ = "loan_prediction_logs"
@@ -153,5 +155,46 @@ class ChurnPredictionLog(Base):
 
     churn_percentage = Column(Float)
     risk_level = Column(String)
+
+    created_at = Column(DateTime, default=egypt_now)    
+    
+    
+    
+class ClientFollowUp(Base):
+    __tablename__ = "client_followups"
+
+    id = Column(Integer, primary_key=True)
+
+    deal_id = Column(Integer)
+
+    employee_id = Column(String)
+
+    client_id = Column(String)
+
+    contact_method = Column(String)
+
+    contact_outcome = Column(String)
+
+    application_status = Column(String)
+
+    notes = Column(String)
+
+    created_at = Column(DateTime, default=egypt_now)    
+    
+    
+class EmployeePerformanceSnapshot(Base):
+    __tablename__ = "employee_performance_snapshots"
+
+    id = Column(Integer, primary_key=True)
+
+    employee_id = Column(String)
+
+    performance_score = Column(Float)
+
+    performance_level = Column(String)
+
+    conversion_rate = Column(Float)
+
+    rank = Column(Integer)
 
     created_at = Column(DateTime, default=egypt_now)    

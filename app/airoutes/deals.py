@@ -41,6 +41,6 @@ def record_new_deal(
     db.refresh(deal)
 
     return {
-        "message": "Deal recorded",
-        
-    }
+    "message": "Deal recorded",
+    "deal_id": deal.id
+}

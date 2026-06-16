@@ -53,4 +53,10 @@ class ResetPasswordRequest(BaseModel):
 class BranchCreate(BaseModel):
     name: str          
     
-    
+class FollowUpRequest(BaseModel):
+    deal_id: int
+    employee_id: str
+    contact_method: str
+    contact_outcome: str
+    application_status: str
+    notes: str = ""    

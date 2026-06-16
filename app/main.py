@@ -14,8 +14,8 @@ from app.dashboard import router as dashboard_router
 from app import activity_logs
 from app.airoutes.loanrout import router as loan_router
 from app.airoutes.creditcardrout import router as credit_card_router
-
-
+from app.followup import router as followup_router
+from app.airoutes.employee_performance import router as employee_performance_router
 
 from app.database import Base, engine
 from app import model
@@ -39,3 +39,5 @@ app.include_router(performance_router)
 app.include_router(deals_router)
 app.include_router(admin_dashboard_router)
 app.include_router(activity_logs.router)
+app.include_router(followup_router)
+app.include_router(employee_performance_router)
