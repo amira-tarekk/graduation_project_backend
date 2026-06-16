@@ -33,6 +33,8 @@ def get_performance_level(score):
 def employee_performance(
     db: Session = Depends(get_db)
 ):
+    
+    
 
     employees = db.query(Employee).all()
 

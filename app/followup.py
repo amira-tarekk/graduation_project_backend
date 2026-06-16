@@ -74,4 +74,18 @@ def save_followup(
 
     return {
         "message": "Follow-up saved successfully"
-    }    
+    }   
+    
+    
+@router.get("/client-history/{client_id}")
+def get_client_history(
+    client_id: str,
+    db: Session = Depends(get_db)
+):
+    history = db.query(ClientFollowUp).filter(
+        ClientFollowUp.client_id == client_id
+    ).order_by(
+        ClientFollowUp.created_at.desc()
+    ).all()
+
+    return history    
