@@ -182,28 +182,39 @@ def reset_password(employee_id: str, data: ResetPasswordRequest, db: Session = D
     admin = db.query(Admin).first()
 
     if not admin or admin.password != data.admin_password:
-     raise HTTPException(
-        status_code=401,
-        detail="Invalid admin password"
-    )
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid admin password"
+        )
 
     emp = db.query(Employee).filter(Employee.employee_id == employee_id).first()
 
     if not emp:
         return {"error": "Employee not found"}
 
-    emp.password_hash = data.new_password
-    db.commit()
-    
-    record_admin_activity(
-    db=db,
-    action="Password Reset",
-    target_type="Employee",
-    target_name=emp.full_name,
-    employee_id=emp.employee_id
-)
+    alphabet = string.ascii_letters + string.digits
 
-    return {"message": "Password updated successfully"}
+    password = ''.join(
+        secrets.choice(alphabet)
+        for _ in range(10)
+    )
+
+    emp.password_hash = password
+
+    db.commit()
+
+    record_admin_activity(
+        db=db,
+        action="Password Reset",
+        target_type="Employee",
+        target_name=emp.full_name,
+        employee_id=emp.employee_id
+    )
+
+    return {
+    "message": "Password updated successfully",
+    "password": password
+}
 
 
 @router.get("/employees/distribution")
