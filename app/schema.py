@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+import re
 
 class Login(BaseModel):
     employee_id: str
@@ -33,12 +35,35 @@ class AdminLogin(BaseModel):
     admin_id: str
     password: str    
     
+from pydantic import BaseModel, field_validator
+import re
+
 class EmployeeCreate(BaseModel):
     employee_id: str
     password_hash: str
     full_name: str
     email: str
-    branch: str 
+    branch: str
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value):
+        if not re.fullmatch(r"[A-Za-z\u0600-\u06FF\s]+", value):
+            print(f"ERROR: Invalid full name entered: {value}")
+            raise ValueError(
+                "Full name must contain letters only"
+            )
+        return value
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value):
+        if not value.endswith("@gmail.com"):
+            print(f"ERROR: Invalid email entered: {value}")
+            raise ValueError(
+                "Email must end with @gmail.com"
+            )
+        return value
     
 class EmployeeUpdate(BaseModel):
     full_name: str

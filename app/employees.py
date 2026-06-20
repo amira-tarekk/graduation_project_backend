@@ -11,7 +11,7 @@ from app.schema import EmployeeUpdate
 from app.schema import ResetPasswordRequest
 import secrets
 import string
-
+from fastapi import HTTPException
 router = APIRouter()
 
 
@@ -50,9 +50,32 @@ def get_employees(search: str = "", db: Session = Depends(get_db)):
         for emp in employees
     ]
 
-
 @router.post("/employees")
 def create_employee(data: EmployeeCreate, db: Session = Depends(get_db)):
+
+    existing_employee = db.query(Employee).filter(
+        Employee.employee_id == data.employee_id
+    ).first()
+
+    if existing_employee:
+        print(f"ERROR: Employee ID {data.employee_id} already exists")
+
+        raise HTTPException(
+            status_code=400,
+            detail="Employee ID already exists"
+        )
+
+    existing_email = db.query(Employee).filter(
+        Employee.email == data.email
+    ).first()
+
+    if existing_email:
+        print(f"ERROR: Email {data.email} already exists")
+
+        raise HTTPException(
+            status_code=400,
+            detail="Email already exists"
+        )
 
     new_employee = Employee(
         employee_id=data.employee_id,
@@ -68,12 +91,12 @@ def create_employee(data: EmployeeCreate, db: Session = Depends(get_db)):
     db.refresh(new_employee)
 
     record_admin_activity(
-    db=db,
-    action="Account Created",
-    target_type="Employee",
-    target_name=data.full_name,
-    employee_id=data.employee_id
-)
+        db=db,
+        action="Account Created",
+        target_type="Employee",
+        target_name=data.full_name,
+        employee_id=data.employee_id
+    )
 
     return {
         "message": "Employee created",
