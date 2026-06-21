@@ -14,7 +14,9 @@ class LoanRequest(BaseModel):
     loan_amount: float
     dti: float
     employment_status: str    
-    
+
+  
+  
     
     
 class ChurnRequest(BaseModel):
@@ -85,3 +87,27 @@ class FollowUpRequest(BaseModel):
     contact_outcome: str
     application_status: str
     notes: str = ""    
+    
+class ClientCreate(BaseModel):
+    client_id: str
+    name: str
+    phone: str
+    email: str
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value):
+        if not re.match(r"^[A-Za-z\s]+$", value):
+            raise ValueError(
+                "Name must contain only letters and spaces"
+            )
+        return value
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value):
+        if not value.lower().endswith("@gmail.com"):
+            raise ValueError(
+                "Email must end with @gmail.com"
+            )
+        return value     

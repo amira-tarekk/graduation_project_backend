@@ -28,7 +28,16 @@ def get_contact_client(
     ).first()
 
     if not client:
-        return {"error": "Client not found"}
+     return {
+        "deal_id": deal.id,
+        "client_name": "New Client",
+        "client_id": "",
+        "phone": "",
+        "email": "",
+        "product_name": deal.product_name,
+        "status": deal.status,
+        "employee_id": deal.employee_id
+    }
 
     return {
         "deal_id": deal.id,

@@ -24,7 +24,8 @@ def deals_this_week(
     deals_count = db.query(DealApplication).filter(
         DealApplication.employee_id == employee_id,
         DealApplication.created_at >= week_start,
-        DealApplication.status == "Accepted"
+        DealApplication.status == "Accepted",
+        DealApplication.model_type != "churn"
     ).count()
 
     return {
@@ -51,10 +52,11 @@ def weekly_graph(
             cast(DealApplication.created_at, Date).label("day"),
             func.count().label("product_count")
         )
-        .filter(
-            DealApplication.employee_id == employee_id,
-            DealApplication.status == "Accepted"
-        )
+     .filter(
+    DealApplication.employee_id == employee_id,
+    DealApplication.status == "Accepted",
+    DealApplication.model_type != "churn"
+)
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
         .group_by(cast(DealApplication.created_at, Date))
@@ -85,10 +87,11 @@ def performance_daily_deals(
             cast(DealApplication.created_at, Date).label("day"),
             func.count().label("product_count")
         )
-        .filter(
-            DealApplication.employee_id == employee_id,
-            DealApplication.status == "Accepted"
-        )
+     .filter(
+    DealApplication.employee_id == employee_id,
+    DealApplication.status == "Accepted",
+    DealApplication.model_type != "churn"
+)
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
         .group_by(cast(DealApplication.created_at, Date))
@@ -119,6 +122,7 @@ def performance_weekly_summary(
         .filter(
         DealApplication.employee_id == employee_id
     )
+        
         .filter(cast(DealApplication.created_at, Date) >= start_of_week)
         .filter(cast(DealApplication.created_at, Date) <= end_of_week)
         .all()
