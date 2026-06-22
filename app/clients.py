@@ -22,6 +22,21 @@ def create_client(
     data: ClientCreate,
     db: Session = Depends(get_db)
 ):
+    print("CLIENT ID:", data.client_id)
+    print("NAME:", data.name)
+    print("PHONE:", data.phone)
+    print("EMAIL:", data.email)
+
+    existing_client = db.query(Client).filter(
+        Client.client_id == data.client_id
+    ).first()
+
+    if existing_client:
+        return {
+            "message": "Client already exists",
+            "client_id": existing_client.client_id
+        }
+
     client = Client(
         client_id=data.client_id,
         name=data.name,
@@ -38,7 +53,7 @@ def create_client(
     return {
         "message": "Client created",
         "client_id": client.client_id
-    }      
+    }     
         
 
 
