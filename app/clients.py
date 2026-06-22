@@ -42,7 +42,7 @@ def create_client(
         name=data.name,
         phone=data.phone,
         email=data.email,
-        branch="Cairo",
+        branch="Cairo Branch",
         status="Active"
     )
 

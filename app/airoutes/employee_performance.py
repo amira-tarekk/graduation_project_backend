@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from app.activity_logger import record_admin_activity
 from app.database import get_db
 from app.model import (
     Employee,
@@ -33,8 +34,12 @@ def get_performance_level(score):
 def employee_performance(
     db: Session = Depends(get_db)
 ):
-    
-    
+    record_admin_activity(
+        db=db,
+        action="Viewed Employee Performance Dashboard",
+        target_type="Performance",
+        target_name="Employee Performance Dashboard"
+    )
 
     employees = db.query(Employee).all()
 
